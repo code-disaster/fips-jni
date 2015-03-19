@@ -37,7 +37,11 @@ def generate(input, out_src, out_hdr) :
 
         sourcePath = os.path.normpath(inputPath + '/' + desc['source-path'])
         classesPath = os.path.normpath(inputPath + '/' + desc['class-path'])
-        excludeFiles = desc['exclude-files']
+
+        if 'exclude-files' in desc :
+            excludeFiles = desc['exclude-files']
+        else :
+            excludeFiles = []
 
         cmdLine = ['java', '-cp', jarFile, mainClass, sourcePath, classesPath, inputPath]
         if excludeFiles :

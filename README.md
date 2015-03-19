@@ -45,20 +45,20 @@ To add JNI code generation to a fips module, simply add something like this to y
 fips_setup_jni()
 
 # the JNI code generator reads the configuration from Remotery.yml, calls
-# jnigen, then writes #includes of all source files listed to Remotery.cc 
+# jnigen, then writes #includes of all source files generated to Remotery.cc
 fips_generate(FROM Remotery.yml TYPE JNICodeGenerator SOURCE Remotery.cc)
 ```
 
 An example configuration YAML looks like this:
 
 ```
-source-path  : "../../remotery-bindings/src/main/java"
-class-path   : "../../remotery-bindings/target/classes"
+source-path   : "../../remotery-bindings/src/main/java"
+class-path    : "../../remotery-bindings/target/classes"
 
 exclude-files :
     - **/ExcludeMePlease.java
 ```
 
-Paths are relative to the directory where this configuration is located. 'exclude-files' is an optional list of Java source files, relative to 'source-path', which is passed as exclude list to jnigen.
+Paths are relative to the directory where this configuration is located. 'exclude-files' is an optional list of Java source files, relative to 'source-path', which is passed as list of excludes to jnigen.
 
 That's it! During ```./fips build``` the jnigen code generator will be invoked. The shell output is scanned, and all source files found will be added as includes to the SOURCE file created by fips_generate().
