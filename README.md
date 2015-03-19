@@ -8,13 +8,15 @@ jnigen: https://github.com/libgdx/libgdx/wiki/jnigen
 
 ## Setup
 
-To check for the required dependencies (Maven, javah):
+In addition to the fips requirements, Maven and javah must be available in the path or through their respective environment variables (```${M2_HOME}```, ```${JAVA_HOME}```).
+
+To check for the required dependencies:
 
 ```
 ./fips jni diag
 ```
 
-To setup the code generator (uses Maven to compile the Java code and creates a small .jar package):
+To setup the code generator (uses Maven to compile a small Java application which calls the the jnigen code generator):
 
 ```
 ./fips jni setup
@@ -24,13 +26,26 @@ To setup the code generator (uses Maven to compile the Java code and creates a s
 
 To learn about how to inline C++ code inside your Java classes, please read the [jnigen documentation](https://github.com/libgdx/libgdx/wiki/jnigen).
 
+A small example:
+
+```
+/*JNI
+	#include "Remotery.h"
+*/
+
+private static native void rtmSetCurrentThreadName(long pointer); /*
+	rmt_SetCurrentThreadName((const char*) pointer);
+*/
+```
+
 To add JNI code generation to a fips module, simply add something like this to your CMakeLists.txt:
 
 ```
 # searches and adds jni.h and jni_md.h to the include path
 fips_setup_jni()
 
-# invokes the JNI code generator
+# the JNI code generator reads the configuration from Remotery.yml, calls
+# jnigen, then writes #includes of all source files listed to Remotery.cc 
 fips_generate(FROM Remotery.yml TYPE JNICodeGenerator SOURCE Remotery.cc)
 ```
 
