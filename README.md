@@ -8,7 +8,7 @@ jnigen: https://github.com/libgdx/libgdx/wiki/jnigen
 
 ## Setup
 
-In addition to the fips requirements, Maven and javah must be available in the path or through their respective environment variables (```${M2_HOME}```, ```${JAVA_HOME}```).
+In addition to the fips requirements, Maven and javah must be available in the path, or through their respective environment variables (```${M2_HOME}```, ```${JAVA_HOME}```).
 
 To check for the required dependencies:
 
@@ -55,10 +55,10 @@ An example configuration YAML looks like this:
 source-path  : "../../remotery-bindings/src/main/java"
 class-path   : "../../remotery-bindings/target/classes"
 
-source-files :
-    - com.codedisaster.remotery.Remotery
+exclude-files :
+    - **/ExcludeMePlease.java
 ```
 
-Paths are relative to the directory where this configuration is located. 'source-files' is a list of fully qualified Java class names.
+Paths are relative to the directory where this configuration is located. 'exclude-files' is an optional list of Java source files, relative to 'source-path', which is passed as exclude list to jnigen.
 
-That's it! During ```./fips build``` the *jnigen code generator* will be invoked. All source files listed in the config will be included into the .cc file created by the *fips JNICodeGenerator* script.
+That's it! During ```./fips build``` the jnigen code generator will be invoked. The shell output is scanned, and all source files found will be added as includes to the SOURCE file created by fips_generate().

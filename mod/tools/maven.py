@@ -2,13 +2,17 @@ import os, sys, subprocess
 
 #-------------------------------------------------------------------------------
 def get_mvn_path() :
-    m2_home = os.environ.get('M2_HOME')
-    if m2_home is 'None' :
-        return None
-    m2_path = '{}{}bin{}mvn'.format(m2_home, os.path.sep, os.path.sep)
-    if sys.platform.startswith('win') :
-        m2_path += '.bat'
-    return m2_path
+    try :
+        subprocess.check_output(['mvn', '--version'], stderr=subprocess.STDOUT)
+        return 'mvn'
+    except OSError, subprocess.CalledProcessError :
+        m2_home = os.environ.get('M2_HOME')
+        if m2_home is 'None' :
+            return None
+        m2_path = '{}{}bin{}mvn'.format(m2_home, os.path.sep, os.path.sep)
+        if sys.platform.startswith('win') :
+            m2_path += '.bat'
+        return m2_path
 
 #-------------------------------------------------------------------------------
 def run(args) :
