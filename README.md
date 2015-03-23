@@ -55,10 +55,15 @@ An example configuration YAML looks like this:
 source-path   : "../../remotery-bindings/src/main/java"
 class-path    : "../../remotery-bindings/target/classes"
 
-exclude-files :
+includes :
+    - **/remotery/*.java
+
+excludes :
     - **/ExcludeMePlease.java
 ```
 
-Paths are relative to the directory where this configuration is located. 'exclude-files' is an optional list of Java source files, relative to 'source-path', which is passed as list of excludes to jnigen.
+Paths are relative to the directory where this configuration is located.
+
+'includes' and 'excludes' are optional lists of file patterns which are forwarded to jnigen. 'includes' defaults to ```**/*.java```. These patterns are usually used to narrow the Java source files to be parsed, both to speed up the generation process as well as avoiding code which can not be processed properly by the generator.
 
 That's it! During ```./fips build``` the jnigen code generator will be invoked. The shell output is scanned, and all source files found will be added as includes to the SOURCE file created by fips_generate().
