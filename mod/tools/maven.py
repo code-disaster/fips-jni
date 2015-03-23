@@ -11,7 +11,10 @@ def get_mvn_path() :
             return None
         m2_path = '{}{}bin{}mvn'.format(m2_home, os.path.sep, os.path.sep)
         if sys.platform.startswith('win') :
-            m2_path += '.bat'
+            if os.path.exists(m2_path + '.cmd') :
+                m2_path += '.cmd'
+            else :
+                m2_path += '.bat'
         return m2_path
 
 #-------------------------------------------------------------------------------
