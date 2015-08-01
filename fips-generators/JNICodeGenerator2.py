@@ -1,6 +1,7 @@
 
 import os
 
+import genutil as util
 import yaml
 
 from mod import log
@@ -18,8 +19,10 @@ def jni_type(type_name, is_ptr) :
 
     if type_name == 'int64_t' :
         return 'jlong'
+    elif type_name == 'void' :
+        return 'void'
 
-    return type_name
+    return '<unhandled-type>'
 
 #-------------------------------------------------------------------------------
 def java_type(type_name) :
@@ -29,8 +32,10 @@ def java_type(type_name) :
 
     if type_name == 'int64_t' :
         return 'long'
+    elif type_name == 'void' :
+        return 'void'
 
-    return type_name
+    return '<unhandled-type>'
 
 #-------------------------------------------------------------------------------
 def decl_type(decl, is_jni, is_java) :
@@ -191,6 +196,7 @@ def generate_java(output_path, class_name) :
     java.write('package {};\n\n'.format(class_package_and_name[0]))
     java.write(HeaderNote)
     java.write('public class {} {{\n'.format(class_package_and_name[1]))
+
     return java
 
 #-------------------------------------------------------------------------------
@@ -202,45 +208,65 @@ def generate(input, out_src, out_hdr) :
 
     if util.isDirty(Version, [input], [out_src, out_hdr]) :
 
-        input_path = os.path.dirname(input)
-        output_path = os.path.dirname(out_src)
-
+        # read YAML
         with open(input, 'r') as f :
             desc = yaml.load(f)
 
-        header_file = input_path + '/' + desc['header']
+        # path of YAML - this is where the C header files are searched
+        header_path = os.path.dirname(input)
 
-        jni_class_name = desc['class']
-        jni_class_prefix = jni_class_name.replace('.', '_')
+        # output path - in 'fips-deploy/...'' for OUT_OF_SOURCE generation
+        output_path = os.path.dirname(out_src)
 
-        jni_class_out = os.path.normpath(os.path.join(input_path, desc['class-output']))
-        jni_class_path = os.path.normpath(os.path.join(jni_class_out, jni_class_name.replace('.', '/')) + '.java')
+        # Java output root, relative to path of YAML
+        java_class_out = os.path.normpath(os.path.join(header_path, desc['class-output']))
 
-        print('header: {}'.format(header_file))
-        print('class: {} ({})'.format(jni_class_name, jni_class_prefix))
-        print('class output: {} ({})'.format(jni_class_out, jni_class_path))
+        # generator output file, for 'Unity' build
+        out = open(out_src, 'w')
+        out.write(HeaderNote)
 
-        src = generate_source(output_path, jni_class_name, header_file)
-        hdr = generate_header(output_path, jni_class_name, jni_class_prefix)
+        # iterate entries
+        for header in desc['headers'] :
 
-        generate_java_path(jni_class_out, jni_class_path)
-        java = generate_java(jni_class_path, jni_class_name)
+            # C header file
+            header_file = os.path.join(header_path, header['source'])
 
-        ast = parse_file(header_file, use_cpp=True, cpp_path='cl', cpp_args=['/EP'])
+            # Java package and class name
+            java_class_name = header['class']
 
-        ast.show()
+            # .java output path
+            java_class_path = os.path.normpath(os.path.join(java_class_out, java_class_name.replace('.', '/') + '.java'))
 
-        for ext in ast.ext :
-            decl_type = type(ext.type)
+            # TODO: dirty file check
 
-            if decl_type == c_ast.FuncDecl :
-                parse_function_declaration(ext.name, ext.type, src, hdr, java, jni_class_prefix)
+            # JNI function names prefix
+            jni_class_prefix = java_class_name.replace('.', '_')
 
-        complete_header(hdr)
-        complete_java(java)
+            # status message
+            print('Generating \'{}\' for \'{}\' ...\n'.format(java_class_name, header_file))
 
-        # write generator source file
+            # .cc and .h
+            src = generate_source(output_path, java_class_name, header_file)
+            hdr = generate_header(output_path, java_class_name, jni_class_prefix)
 
-        with open(out_src, 'w') as out :
-            out.write(HeaderNote)
-            out.write('#include "{}.cc"'.format(jni_class_name))
+            # Java directory structure (if needed)
+            generate_java_path(java_class_out, java_class_path)
+            # .java
+            java = generate_java(java_class_path, java_class_name)
+
+            # parse C header
+            # TODO: OSX/Linux
+            ast = parse_file(header_file, use_cpp=True, cpp_path='cl', cpp_args=['/EP'])
+
+            ast.show()
+
+            for ext in ast.ext :
+                decl_type = type(ext.type)
+                if decl_type == c_ast.FuncDecl :
+                    parse_function_declaration(ext.name, ext.type, src, hdr, java, jni_class_prefix)
+
+            complete_header(hdr)
+            complete_java(java)
+
+            # write generator source file
+            out.write('#include "{}.cc"\n'.format(java_class_name))
