@@ -16,10 +16,18 @@ def jni_type(type_name, is_ptr) :
 		if type_name == 'char' :
 			return 'jstring'
 
-	return '?'
+	return type_name
 
 #-------------------------------------------------------------------------------
-def decl_type(decl, is_jni) :
+def java_type(type_name) :
+
+	if type_name == 'char' :
+		return 'String'
+
+	return type_name
+
+#-------------------------------------------------------------------------------
+def decl_type(decl, is_jni, is_java) :
 	
 	# pointer
 
@@ -30,7 +38,9 @@ def decl_type(decl, is_jni) :
 
 	result = ''
 
-	if is_jni :
+	if is_java :
+		return java_type(decl.type.names[0])
+	elif is_jni :
 		return jni_type(decl.type.names[0], is_ptr)
 	else :
 		for qual in decl.quals :
@@ -44,9 +54,9 @@ def decl_type(decl, is_jni) :
 	return result
 
 #-------------------------------------------------------------------------------
-def parse_function_arguments(args, out, is_decl) :
+def parse_function_arguments(args, out, is_decl, is_java) :
 
-	first_arg = not is_decl
+	first_arg = not is_decl or is_java
 
 	for arg in args :
 
@@ -56,7 +66,7 @@ def parse_function_arguments(args, out, is_decl) :
 			first_arg = False
 
 		if is_decl :
-			out.write('{} '.format(decl_type(arg.type, is_decl)))
+			out.write('{} '.format(decl_type(arg.type, is_decl, is_java)))
 
 		if is_decl :
 			out.write(arg.name)
@@ -68,17 +78,17 @@ def marshal_function_arguments(args, out) :
 
 	for arg in args :
 
-		out.write('\tmarshal_{}({});\n'.format(decl_type(arg.type, True), arg.name))
+		out.write('\tmarshal_{}({});\n'.format(decl_type(arg.type, True, False), arg.name))
 
 #-------------------------------------------------------------------------------
 def cleanup_function_arguments(args, out) :
 
 	for arg in reversed(args) :
 
-		out.write('\tcleanup_{}({});\n'.format(decl_type(arg.type, True), arg.name))
+		out.write('\tcleanup_{}({});\n'.format(decl_type(arg.type, True, False), arg.name))
 
 #-------------------------------------------------------------------------------
-def parse_function_declaration(func_name, func_decl, src, hdr, class_prefix) :
+def parse_function_declaration(func_name, func_decl, src, hdr, java, class_prefix) :
 
 	# return type
 
@@ -94,7 +104,7 @@ def parse_function_declaration(func_name, func_decl, src, hdr, class_prefix) :
 	src.write('JNIEXPORT {} JNICALL Java_{}_{}(\n\t'.format(return_type, class_prefix, func_name))
 	src.write('JNIEnv* env, jclass clazz')
 
-	parse_function_arguments(func_decl.args.params, src, True)
+	parse_function_arguments(func_decl.args.params, src, True, False)
 
 	src.write(')\n{\n')
 
@@ -107,7 +117,7 @@ def parse_function_declaration(func_name, func_decl, src, hdr, class_prefix) :
 
 	src.write('{}('.format(func_name))
 
-	parse_function_arguments(func_decl.args.params, src, False)
+	parse_function_arguments(func_decl.args.params, src, False, False)
 
 	src.write(');\n')
 
@@ -123,9 +133,17 @@ def parse_function_declaration(func_name, func_decl, src, hdr, class_prefix) :
 	hdr.write('JNIEXPORT {} JNICALL Java_{}_{}(\n\t'.format(return_type, class_prefix, func_name))
 	hdr.write('JNIEnv* env, jclass clazz')
 
-	parse_function_arguments(func_decl.args.params, hdr, True)
+	parse_function_arguments(func_decl.args.params, hdr, True, False)
 
 	hdr.write(');\n\n')
+
+	# write java native declaration
+
+	java.write('\tpublic static native {} {}('.format(java_type(return_type), func_name))
+
+	parse_function_arguments(func_decl.args.params, java, True, True)
+
+	java.write(');\n')
 
 #-------------------------------------------------------------------------------
 def generate_source(input_path, jni_class_name, header_file) :
@@ -151,6 +169,29 @@ def complete_header(hdr) :
 	hdr.write('#ifdef __cplusplus\n}\n#endif\n\n#endif\n')
 
 #-------------------------------------------------------------------------------
+def generate_java_path(output_root, output_path) :
+	if os.path.exists(output_root) :
+		try :
+			os.makedirs(os.path.dirname(output_path))
+		except OSError :
+			pass
+
+#-------------------------------------------------------------------------------
+def generate_java(output_path, class_name) :
+	
+	class_package_and_name = class_name.rsplit('.', 1)
+
+	java = open(output_path, 'w')
+	java.write('package {};\n\n'.format(class_package_and_name[0]))
+	java.write(HeaderNote)
+	java.write('public class {} {{\n'.format(class_package_and_name[1]))
+	return java
+
+#-------------------------------------------------------------------------------
+def complete_java(java) :
+	java.write('}\n')
+
+#-------------------------------------------------------------------------------
 def generate(input, out_src, out_hdr) :
 
 	input_path = os.path.dirname(input)
@@ -159,14 +200,22 @@ def generate(input, out_src, out_hdr) :
 		desc = yaml.load(f)
 
 	header_file = input_path + '/' + desc['header']
+
 	jni_class_name = desc['class']
 	jni_class_prefix = jni_class_name.replace('.', '_')
 
+	jni_class_out = os.path.normpath(os.path.join(input_path, desc['class-output']))
+	jni_class_path = os.path.normpath(os.path.join(jni_class_out, jni_class_name.replace('.', '/')) + '.java')
+
 	print('header: {}'.format(header_file))
 	print('class: {} ({})'.format(jni_class_name, jni_class_prefix))
+	print('class output: {} ({})'.format(jni_class_out, jni_class_path))
 
 	src = generate_source(input_path, jni_class_name, header_file)
 	hdr = generate_header(input_path, jni_class_name, jni_class_prefix)
+
+	generate_java_path(jni_class_out, jni_class_path)
+	java = generate_java(jni_class_path, jni_class_name)
 
 	ast = parse_file(header_file, use_cpp=True, cpp_path='cl', cpp_args=['/EP'])
 
@@ -176,9 +225,10 @@ def generate(input, out_src, out_hdr) :
 		decl_type = type(ext.type)
 
 		if decl_type == c_ast.FuncDecl :
-			parse_function_declaration(ext.name, ext.type, src, hdr, jni_class_prefix)
+			parse_function_declaration(ext.name, ext.type, src, hdr, java, jni_class_prefix)
 
 	complete_header(hdr)
+	complete_java(java)
 
 	# write generator source file
 
