@@ -16,6 +16,9 @@ def jni_type(type_name, is_ptr) :
 		if type_name == 'char' :
 			return 'jstring'
 
+	if type_name == 'int64_t' :
+		return 'jlong'
+
 	return type_name
 
 #-------------------------------------------------------------------------------
@@ -23,6 +26,9 @@ def java_type(type_name) :
 
 	if type_name == 'char' :
 		return 'String'
+
+	if type_name == 'int64_t' :
+		return 'long'
 
 	return type_name
 
@@ -101,7 +107,7 @@ def parse_function_declaration(func_name, func_decl, src, hdr, java, class_prefi
 
 	# write function implementation
 
-	src.write('JNIEXPORT {} JNICALL Java_{}_{}(\n\t'.format(return_type, class_prefix, func_name))
+	src.write('JNIEXPORT {} JNICALL Java_{}_{}(\n\t'.format(jni_type(return_type, False), class_prefix, func_name))
 	src.write('JNIEnv* env, jclass clazz')
 
 	parse_function_arguments(func_decl.args.params, src, True, False)
@@ -124,13 +130,13 @@ def parse_function_declaration(func_name, func_decl, src, hdr, java, class_prefi
 	cleanup_function_arguments(func_decl.args.params, src)
 
 	if has_return_type :
-		src.write('\treturn jni_return_{}(_result);\n'.format(return_type))
+		src.write('\treturn return_{}(_result);\n'.format(jni_type(return_type, False)))
 
 	src.write('}\n\n')
 
 	# write function declaration
 
-	hdr.write('JNIEXPORT {} JNICALL Java_{}_{}(\n\t'.format(return_type, class_prefix, func_name))
+	hdr.write('JNIEXPORT {} JNICALL Java_{}_{}(\n\t'.format(jni_type(return_type, False), class_prefix, func_name))
 	hdr.write('JNIEnv* env, jclass clazz')
 
 	parse_function_arguments(func_decl.args.params, hdr, True, False)

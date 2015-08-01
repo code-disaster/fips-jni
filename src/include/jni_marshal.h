@@ -7,6 +7,7 @@
 #define cleanup_jstring(name) \
 	env->ReleaseStringUTFChars(name, _##name)
 
-#define jni_return_long(result) result
+#define return_jlong(result) \
+	(jlong) (result)
 
 #endif
