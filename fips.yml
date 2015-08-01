@@ -1,4 +1,7 @@
 #
 # fips-jni
 #
---
+---
+exports:
+    header-dirs:
+        - src/include
