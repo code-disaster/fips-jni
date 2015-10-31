@@ -56,10 +56,10 @@ source-path   : "../../remotery-bindings/src/main/java"
 class-path    : "../../remotery-bindings/target/classes"
 
 includes :
-    - **/remotery/*.java
+    - "**/remotery/*.java"
 
 excludes :
-    - **/ExcludeMePlease.java
+    - "**/ExcludeMePlease.java"
 ```
 
 Paths are relative to the directory where this configuration is located.
