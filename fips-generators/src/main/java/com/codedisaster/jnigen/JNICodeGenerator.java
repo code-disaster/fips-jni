@@ -1,7 +1,7 @@
 package com.codedisaster.jnigen;
 
 import com.badlogic.gdx.jnigen.NativeCodeGenerator;
-import japa.parser.ParseException;
+import com.github.javaparser.ParseException;
 
 import java.util.ArrayList;
 import java.util.List;
