@@ -61,6 +61,7 @@ def generate(input, out_src, out_hdr) :
 
         try:
             output = subprocess.check_output(cmdLine, env=_env, stderr=subprocess.STDOUT)
+            output = output.decode('utf-8')
 
             # scans jnigen output to create list of generated files
             expr = re.compile("C/C\\+\\+ for '(.*)'")
@@ -70,7 +71,7 @@ def generate(input, out_src, out_hdr) :
                 relPath = relPath.replace('.java', '').replace(os.path.sep, '.')
                 srcFiles = srcFiles + [relPath]
 
-        except OSError, subprocess.CalledProcessError :
+        except (OSError, subprocess.CalledProcessError) :
             log.failed('JNICodeGenerator', 'Error!')
             raise OSError
 

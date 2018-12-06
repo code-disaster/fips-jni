@@ -5,7 +5,7 @@ def get_mvn_path() :
     try :
         subprocess.check_output(['mvn', '--version'], stderr=subprocess.STDOUT)
         return 'mvn'
-    except OSError, subprocess.CalledProcessError :
+    except (OSError, subprocess.CalledProcessError) :
         m2_home = os.environ.get('M2_HOME')
         if m2_home is 'None' :
             return None
@@ -25,7 +25,7 @@ def run(args) :
             return False
         subprocess.check_call([mvn_path] + args, stderr=subprocess.STDOUT)
         return True
-    except OSError, subprocess.CalledProcessError :
+    except (OSError, subprocess.CalledProcessError) :
         return False
 
 #-------------------------------------------------------------------------------
@@ -36,5 +36,5 @@ def check() :
             return False
         subprocess.check_output([mvn_path, '--version'], stderr=subprocess.STDOUT)
         return True
-    except OSError, subprocess.CalledProcessError :
+    except (OSError, subprocess.CalledProcessError) :
         return False
